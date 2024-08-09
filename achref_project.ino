@@ -7,6 +7,7 @@
 
 // Pin definitions
 Servo outing_servo;
+Servo enter_servo;
 #define SS_PIN 10   // Slave Select pin for RFID
 #define RST_PIN 9   // Reset pin for RFID
 int outing_sensor = 4;
@@ -55,7 +56,7 @@ int numVisitorsInside = 0;
 
 void setup() {
     outing_servo.attach(3);
-
+    enter_servo.attach(2);
     Serial.begin(9600);
 
     pinMode(outing_sensor, INPUT);
@@ -66,9 +67,9 @@ void setup() {
     lcd.init();
     lcd.backlight();
 
-    Visitor v1("folen1", 22, "793C097F"); // First visitor
-    Visitor v2("folen2", 30, "FB17AB1B");
-    Visitor v3("folen3", 12, "899BEAC9");
+    Visitor v1("visitor1", 22, "793C097F"); // First visitor
+    Visitor v2("visitor2", 30, "FB17AB1B");
+    Visitor v3("visitor3", 12, "899BEAC9");
     allvisitor[0] = v1;
     allvisitor[1] = v2;
     allvisitor[2] = v3;
@@ -101,17 +102,29 @@ bool test(String uid) {
 
     if (allvisitor[i].number_of_visits >= 3) {
         lcd.setCursor(0, 0);
-        lcd.print("Visitor had ");
+        lcd.print("Max number of visits");
         lcd.setCursor(0, 1);
-        lcd.print("3 visits");
+        lcd.print("Reached");
         delay(1500);
         lcd.clear();
         return false;
     }
 
     // Check if the visitor has to wait for a certain period
-    if (allvisitor[i].number_of_visits > 0) {
+    /*if (allvisitor[i].number_of_visits > 0) {
         if (abs(allvisitor[i].last_visit_minute - now.Minute()) < 1) {
+            lcd.setCursor(0, 0);
+            lcd.print("You have to ");
+            lcd.setCursor(0, 1);
+            lcd.print("wait 1 minute");
+            delay(1500);
+            lcd.clear();
+            return false;
+        }
+    }*/
+       //Check if the visitor has to wait for a certain period
+    if (allvisitor[i].number_of_visits > 0) {
+        if (abs(allvisitor[i].last_visit_day - now.Day()) < 1 || abs(allvisitor[i].last_visit_month - now.Month()) < 1 || abs(allvisitor[i].last_visit_year - now.Year()) < 1 ) {
             lcd.setCursor(0, 0);
             lcd.print("You have to ");
             lcd.setCursor(0, 1);
@@ -122,8 +135,6 @@ bool test(String uid) {
         }
     }
 
-    Serial.print("numVisitorsInside: ");
-    Serial.println(numVisitorsInside);
 
     if (numVisitorsInside >= numVisitorsInsideMax) {
         lcd.setCursor(0, 0);
@@ -132,8 +143,6 @@ bool test(String uid) {
         lcd.print("place inside");
         delay(1500);
         lcd.clear();
-        Serial.print("numVisitorsInside: ");
-        Serial.println(numVisitorsInside);
         return false;
     }
     
@@ -181,7 +190,9 @@ void loop() {
                 }
                 lcd.setCursor(0, 1);
                 lcd.print(allvisitor[i].name);
-
+                enter_servo.write(90);
+                delay(1000);
+                enter_servo.write(0);
                 // Update visitor's last visit info
                 RtcDateTime now = Rtc.GetDateTime();
                 allvisitor[i].last_visit_day = now.Day();
